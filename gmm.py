@@ -13,12 +13,18 @@
     - sample a Gaussian RV using this index with corresponding mu and sigma
 '''
 
+import numpy as np
 from scipy.stats import rv_continuous
+from sklearn.mixture import GaussianMixture
 
 class gmm(rv_continuous):
     def _argcheck(self, wgt, mu, sigma):
+        '''
+        Ensure the weights are positive and sum to one
+        '''
+        wgt = np.array(wgt).flatten()
 
-        pass
+        return (np.all(wgt > 0) and (sum(wgt) == 1.0))
 
     def _pdf(self, x, wgt, mu, sigma):
         pass
