@@ -15,30 +15,93 @@
 
 import numpy as np
 import math
-from scipy.stats import rv_continuous, norm
+from scipy.stats import norm
 from sklearn.mixture import GaussianMixture
 
-class gmm(rv_continuous):
-    def _argcheck(self, wgt, mu, sigma):
-        '''
-        Ensure the weights are positive and sum to one
-        '''
-        wgt = np.array(wgt).flatten()
-
-        return (np.all(wgt > 0) and (sum(wgt) == 1.0))
-
-    def _pdf(self, x, wgt, mu, sigma):
-        pdf = 0
-        for i in range(len(wgt)):
-            pdf += wgt[i] * ((1/math.sqrt(2 * math.pi * sigma[i]**2)) * math.exp(-(x - mu[i])**2 / (2 * sigma[i] ** 2)))
+class gmm:
+    def pdf(self, x, wgt, mu, sigma):
+        """
+        probability density function for the gaussian mixture
+        """
+        x = np.atleast_1d(x)[:, None]  #to check that x is a column vector
+        wgt = np.asarray(wgt)
+        mu = np.asarray(mu)
+        sigma = np.asarray(sigma)
+        # pdf = 0
+        pdf = np.sum(wgt * norm.pdf(x, loc=mu, scale=sigma), axis=1)
+        # for i in range(len(wgt)):
+        #     pdf += wgt[i] * ((1/math.sqrt(2 * math.pi * sigma[i]**2)) * math.exp(-(x - mu[i])**2 / (2 * sigma[i] ** 2)))
         
         return pdf
 
-    def _cdf(self, x, wgt, mu, sigma):
-        pass
+    def cdf(self, x, wgt, mu, sigma):
+        """
+        cumulative density function for the gaussian mixture
+        """
+        x = np.atleast_1d(x)[:, None]  #to check that x is a column vector
+        wgt = np.asarray(wgt)
+        mu = np.asarray(mu)
+        sigma = np.asarray(sigma)
+        cdf = np.sum(wgt * norm.cdf(x, loc=mu, scale=sigma), axis=1)
+        
+        return cdf
 
-    def _rvs(self, wgt, mu, sigma, size=None, random_state=None):
-        pass
+    def rvs(self, wgt, mu, sigma, size=None, random_state=None):
+        """
+        Generate random variables from the gmm
+        """
+        size = 1 if size is None else size
+        wgt = np.asarray(wgt)
+        mu = np.asarray(mu)
+        sigma = np.asarray(sigma)
+        random_state = random_state if random_state else np.random.default_rng()
+
+        # to sample mixture component indices based on weights index
+        component_indices = random_state.choice(len(wgt), size = size, p = wgt)
+        
+        # Generate rv samples from the selected gaussian components
+        rvs = random_state.normal(loc = mu[component_indices], scale = sigma[component_indices])
+        
+        return rvs
 
     def fit(self, data, k):
-        pass
+        """
+        fit using sklearn gaussian mixture
+        """
+        gaussmix = GaussianMixture(n_components = k, random_state = 0)
+        gaussmix.fit(data.reshape(-1, 1))
+
+        weights = gaussmix.weights_
+        means = gaussmix.means_.flatten()
+        covariances = gaussmix.covariances_.flatten()
+        
+        return weights, means, covariances
+
+
+if __name__ == "__main__":
+    # Testing
+    np.random.seed(42)
+    data = np.concatenate([
+        np.random.normal(loc=-2, scale=0.5, size=300),
+        np.random.normal(loc=3, scale=1.0, size=700)
+    ])
+
+    # Instantiate and fit the model
+    gaussmix = gmm()
+    weights, means, covariances = gaussmix.fit(data, k=2)
+
+    print("Weights:", weights)
+    print("Means:", means)
+    print("Covariances:", covariances)
+
+    # Evaluate PDF and CDF at some points
+    x = np.linspace(-5, 5, 100)
+    pdf_vals = gaussmix.pdf(x, weights, means, np.sqrt(covariances))
+    cdf_vals = gaussmix.cdf(x, weights, means, np.sqrt(covariances))
+
+    print("PDF values:", pdf_vals)
+    print("CDF values:", cdf_vals)
+
+    # Generate random samples
+    samples = gaussmix.rvs(weights, means, np.sqrt(covariances), size=10)
+    print("Generated samples:", samples)
