@@ -14,7 +14,8 @@
 '''
 
 import numpy as np
-from scipy.stats import rv_continuous
+import math
+from scipy.stats import rv_continuous, norm
 from sklearn.mixture import GaussianMixture
 
 class gmm(rv_continuous):
@@ -27,7 +28,11 @@ class gmm(rv_continuous):
         return (np.all(wgt > 0) and (sum(wgt) == 1.0))
 
     def _pdf(self, x, wgt, mu, sigma):
-        pass
+        pdf = 0
+        for i in range(len(wgt)):
+            pdf += wgt[i] * ((1/math.sqrt(2 * math.pi * sigma[i]**2)) * math.exp(-(x - mu[i])**2 / (2 * sigma[i] ** 2)))
+        
+        return pdf
 
     def _cdf(self, x, wgt, mu, sigma):
         pass
