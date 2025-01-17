@@ -18,7 +18,7 @@ import math
 from scipy.stats import norm
 from sklearn.mixture import GaussianMixture
 
-class gmm:
+class GMM:
     def pdf(self, x, wgt, mu, sigma):
         """
         probability density function for the gaussian mixture
@@ -27,8 +27,12 @@ class gmm:
         wgt = np.asarray(wgt)
         mu = np.asarray(mu)
         sigma = np.asarray(sigma)
+
+        if not np.isclose(np.sum(wgt), 1):
+            raise ValueError("Weights must sum to 1.")
+        
         # pdf = 0
-        pdf = np.sum(wgt * norm.pdf(x, loc=mu, scale=sigma), axis=1)
+        pdf = np.sum(wgt * norm.pdf(x, loc = mu, scale = sigma), axis=1)
         # for i in range(len(wgt)):
         #     pdf += wgt[i] * ((1/math.sqrt(2 * math.pi * sigma[i]**2)) * math.exp(-(x - mu[i])**2 / (2 * sigma[i] ** 2)))
         
@@ -42,7 +46,7 @@ class gmm:
         wgt = np.asarray(wgt)
         mu = np.asarray(mu)
         sigma = np.asarray(sigma)
-        cdf = np.sum(wgt * norm.cdf(x, loc=mu, scale=sigma), axis=1)
+        cdf = np.sum(wgt * norm.cdf(x, loc = mu, scale = sigma), axis=1)
         
         return cdf
 
@@ -75,7 +79,7 @@ class gmm:
         means = gaussmix.means_.flatten()
         covariances = gaussmix.covariances_.flatten()
         
-        return weights, means, covariances
+        return weights, means, np.sqrt(covariances)
 
 
 if __name__ == "__main__":
@@ -87,21 +91,21 @@ if __name__ == "__main__":
     ])
 
     # Instantiate and fit the model
-    gaussmix = gmm()
-    weights, means, covariances = gaussmix.fit(data, k=2)
+    gaussmix = GMM()
+    weights, means, sigmas = gaussmix.fit(data, k=2)
 
     print("Weights:", weights)
     print("Means:", means)
-    print("Covariances:", covariances)
+    print("Sigmas:", sigmas)
 
     # Evaluate PDF and CDF at some points
     x = np.linspace(-5, 5, 100)
-    pdf_vals = gaussmix.pdf(x, weights, means, np.sqrt(covariances))
-    cdf_vals = gaussmix.cdf(x, weights, means, np.sqrt(covariances))
+    pdf_vals = gaussmix.pdf(x, weights, means, sigmas)
+    cdf_vals = gaussmix.cdf(x, weights, means, sigmas)
 
     print("PDF values:", pdf_vals)
     print("CDF values:", cdf_vals)
 
     # Generate random samples
-    samples = gaussmix.rvs(weights, means, np.sqrt(covariances), size=10)
+    samples = gaussmix.rvs(weights, means, sigmas, size=10)
     print("Generated samples:", samples)
