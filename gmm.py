@@ -1,20 +1,4 @@
-'''
-- contains the implementation of GMM wrt scipy
-- creating subclass of rv_continuous provided in scipy.stats
-- override the functions that are mentioned right now
-- argcheck should check that all wgt are +ve and sum to 1
-- wgt, mu and sigma are params to GMM
-- pdf, cdf should allow x to be vector
-- can use fit function in sklearn.mixture class GaussianMixture (k in fit is no. of components in mixture model)
-- wgt, mu and sigma are coulmn vectors and x is a row vector
-- wrap the testing code (meaning that it should not run if this script is used in another file)
-- rvs: generate RVs from a GMM
-    - todo for each RV: sample what mixture to use by sampling an index from wgt vector
-    - sample a Gaussian RV using this index with corresponding mu and sigma
-'''
-
 import numpy as np
-import math
 from scipy.stats import norm
 from sklearn.mixture import GaussianMixture
 
@@ -23,18 +7,18 @@ class GMM:
         """
         probability density function for the gaussian mixture
         """
-        x = np.atleast_1d(x)[:, None]  #to check that x is a column vector
+        # Converting arguments to numpy arrays
+        x = np.atleast_1d(x)[:, None]  # to check that x is a column vector
         wgt = np.asarray(wgt)
         mu = np.asarray(mu)
         sigma = np.asarray(sigma)
 
+        # Checking that all weights sum to 1
         if not np.isclose(np.sum(wgt), 1):
             raise ValueError("Weights must sum to 1.")
         
-        # pdf = 0
+        # Calculating the pdf using stats.norm and summing it up for GMM pdf
         pdf = np.sum(wgt * norm.pdf(x, loc = mu, scale = sigma), axis=1)
-        # for i in range(len(wgt)):
-        #     pdf += wgt[i] * ((1/math.sqrt(2 * math.pi * sigma[i]**2)) * math.exp(-(x - mu[i])**2 / (2 * sigma[i] ** 2)))
         
         return pdf
 
@@ -42,10 +26,17 @@ class GMM:
         """
         cumulative density function for the gaussian mixture
         """
-        x = np.atleast_1d(x)[:, None]  #to check that x is a column vector
+        # Converting arguments to numpy arrays
+        x = np.atleast_1d(x)[:, None]  # to check that x is a column vector
         wgt = np.asarray(wgt)
         mu = np.asarray(mu)
         sigma = np.asarray(sigma)
+
+        # Checking that all weights sum to 1
+        if not np.isclose(np.sum(wgt), 1):
+            raise ValueError("Weights must sum to 1.")
+
+        # Calculating the cdf using stats.norm and summing it up for GMM pdf
         cdf = np.sum(wgt * norm.cdf(x, loc = mu, scale = sigma), axis=1)
         
         return cdf
@@ -54,10 +45,15 @@ class GMM:
         """
         Generate random variables from the gmm
         """
+        # have to set the size to 1 if not specified as per instructions
         size = 1 if size is None else size
+        
+        # converting to numpy arrays
         wgt = np.asarray(wgt)
         mu = np.asarray(mu)
         sigma = np.asarray(sigma)
+
+        # setting the default random state if not specified
         random_state = random_state if random_state else np.random.default_rng()
 
         # to sample mixture component indices based on weights index
@@ -83,22 +79,22 @@ class GMM:
 
 
 if __name__ == "__main__":
-    # Testing
+    # Testing the gmm file
     np.random.seed(42)
     data = np.concatenate([
         np.random.normal(loc=-2, scale=0.5, size=300),
         np.random.normal(loc=3, scale=1.0, size=700)
     ])
 
-    # Instantiate and fit the model
+    # instantiating the object and fit the model with k as 2
     gaussmix = GMM()
-    weights, means, sigmas = gaussmix.fit(data, k=2)
+    weights, means, sigmas = gaussmix.fit(data, k = 2)
 
     print("Weights:", weights)
     print("Means:", means)
     print("Sigmas:", sigmas)
 
-    # Evaluate PDF and CDF at some points
+    # evaluating PDF and CDF at some points
     x = np.linspace(-5, 5, 100)
     pdf_vals = gaussmix.pdf(x, weights, means, sigmas)
     cdf_vals = gaussmix.cdf(x, weights, means, sigmas)
@@ -106,6 +102,6 @@ if __name__ == "__main__":
     print("PDF values:", pdf_vals)
     print("CDF values:", cdf_vals)
 
-    # Generate random samples
-    samples = gaussmix.rvs(weights, means, sigmas, size=10)
+    # generating random samples
+    samples = gaussmix.rvs(weights, means, sigmas, size = 10)
     print("Generated samples:", samples)
